@@ -1,6 +1,9 @@
-const { test } = require('../controllers/testController');
-router.get('/test', test);
+const express = require('express');
+const { test } = require('../controllers/testControllers');
+
 const router = express.Router();
+
+router.get('/test', test);
 
 router.get('/', (req, res) => {
   res.send("Main API route working");

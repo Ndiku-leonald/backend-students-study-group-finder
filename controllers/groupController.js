@@ -2,7 +2,7 @@ const { Op } = require('sequelize');
 const Group = require('../models/Group');
 const GroupMember = require('../models/GroupMember');
 
-exports.searchGroups = async (req, res) => {
+exports.createGroup = async (req, res) => {
   try {
     const group = await Group.create({
       ...req.body,
@@ -10,6 +10,50 @@ exports.searchGroups = async (req, res) => {
     });
 
     res.json(group);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.getGroups = async (req, res) => {
+  try {
+    const groups = await Group.findAll({ order: [['createdAt', 'DESC']] });
+    res.json(groups);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.searchGroups = async (req, res) => {
+  try {
+    const q = req.query.q || '';
+    const groups = await Group.findAll({
+      where: {
+        [Op.or]: [
+          { name: { [Op.like]: `%${q}%` } },
+          { course: { [Op.like]: `%${q}%` } },
+          { location: { [Op.like]: `%${q}%` } }
+        ]
+      },
+      order: [['createdAt', 'DESC']]
+    });
+
+    res.json(groups);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.joinGroup = async (req, res) => {
+  try {
+    const { groupId } = req.params;
+
+    const membership = await GroupMember.create({
+      groupId,
+      userId: req.user.id
+    });
+
+    res.json(membership);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

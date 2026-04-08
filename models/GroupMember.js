@@ -1,12 +1,15 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/db');
 
-const Group = sequelize.define('Group', {
-  name: DataTypes.STRING,
-  course: DataTypes.STRING,
-  description: DataTypes.TEXT,
-  location: DataTypes.STRING,
-  userId: DataTypes.INTEGER
+const GroupMember = sequelize.define('GroupMember', {
+  groupId: {
+    type: DataTypes.INTEGER,
+    allowNull: false
+  },
+  userId: {
+    type: DataTypes.INTEGER,
+    allowNull: false
+  }
 });
 
-module.exports = Group;
+module.exports = GroupMember;
