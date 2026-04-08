@@ -4,11 +4,12 @@ require('dotenv').config();
 const PORT = process.env.PORT || 5000;
 const authRoutes = require('./routes/authRoutes');
 const groupRoutes = require('./routes/groupRoutes');
-
+const sessionRoutes = require('./routes/sessionRoutes');
 
 app.use(express.json());
 app.use('/auth', authRoutes);
 app.use('/groups', groupRoutes);
+app.use('/sessions', sessionRoutes);
 
 app.get('/', (req, res) => {
   res.send("API is running");
