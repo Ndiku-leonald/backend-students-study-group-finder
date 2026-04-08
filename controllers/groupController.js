@@ -1,13 +1,21 @@
+const { Op } = require('sequelize');
 const Group = require('../models/Group');
 
-exports.createGroup = async (req, res) => {
+exports.searchGroups = async (req, res) => {
   try {
-    const group = await Group.create({
-      ...req.body,
-      userId: req.user.id
+    const { query } = req.query;
+
+    if (!query) {
+      return res.status(400).json({ error: 'query parameter is required' });
+    }
+
+    const groups = await Group.findAll({
+      where: {
+        name: { [Op.like]: `%${query}%` }
+      }
     });
 
-    res.json(group);
+    res.json(groups);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
