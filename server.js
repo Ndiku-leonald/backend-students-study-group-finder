@@ -7,7 +7,7 @@ const authRoutes = require('./routes/authRoutes');
 const groupRoutes = require('./routes/groupRoutes');
 const sessionRoutes = require('./routes/sessionRoutes');
 const favoriteRoutes = require('./routes/favoriteRoutes');
-const routes.post = require('./routes/postRoutes');
+const postRoutes = require('./routes/postRoutes');
 app.use(express.json());
 app.use('/auth', authRoutes);
 app.use('/groups', groupRoutes);
