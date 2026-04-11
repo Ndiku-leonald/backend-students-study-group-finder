@@ -64,3 +64,18 @@ exports.joinGroup = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+const GroupMember = require('../models/GroupMember');
+
+exports.getGroups = async (req, res) => {
+  const groups = await Group.findAll();
+
+  const result = await Promise.all(groups.map(async group => {
+    const count = await GroupMember.count({
+      where: { groupId: group.id }
+    });
+
+    return { ...group.toJSON(), members: count };
+  }));
+
+  res.json(result);
+};
