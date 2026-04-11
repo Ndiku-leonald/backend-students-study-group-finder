@@ -9,6 +9,12 @@ exports.createGroup = async (req, res) => {
       userId: req.user.id
     });
 
+    await GroupMember.create({
+      userId: req.user.id,
+      groupId: group.id,
+      role: "leader"
+    });
+
     res.json(group);
   } catch (error) {
     res.status(500).json({ error: error.message });
