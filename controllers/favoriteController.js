@@ -11,3 +11,11 @@ exports.addFavorite = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+const express = require('express');
+const router = express.Router();
+const auth = require('../middleware/authMiddleware');
+const { addFavorite } = require('../controllers/favoriteController');
+
+router.post('/:groupId', auth, addFavorite);
+
+module.exports = router;
