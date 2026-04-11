@@ -1,8 +1,23 @@
-const Session = require('../models/Session');
+const Session = require('../models/session');
+const Group = require('../models/Group');
+
+const isGroupLeader = (group, userId) => group.userId === userId;
 
 exports.createSession = async (req, res) => {
   try {
-    const session = await Session.create(req.body);
+    const { groupId, date, time, location, description } = req.body;
+
+    const group = await Group.findByPk(groupId);
+
+    if (!group) {
+      return res.status(404).json({ message: 'Group not found' });
+    }
+
+    if (!isGroupLeader(group, req.user.id)) {
+      return res.status(403).json({ message: 'Only the group leader can create study sessions' });
+    }
+
+    const session = await Session.create({ groupId, date, time, location, description });
     res.json(session);
   } catch (error) {
     res.status(500).json({ error: error.message });

@@ -1,18 +1,30 @@
 const { Op } = require('sequelize');
 const Group = require('../models/Group');
 const GroupMember = require('../models/GroupMember');
+const User = require('../models/user');
+
+const isGroupLeader = (group, userId) => group.userId === userId;
 
 exports.createGroup = async (req, res) => {
   try {
+    const { name, course, faculty, description, location } = req.body;
+
+    if (!name || !course || !description || !location) {
+      return res.status(400).json({ message: 'Name, course, description, and location are required' });
+    }
+
     const group = await Group.create({
-      ...req.body,
+      name,
+      course,
+      faculty,
+      description,
+      location,
       userId: req.user.id
     });
 
     await GroupMember.create({
       userId: req.user.id,
-      groupId: group.id,
-      role: "leader"
+      groupId: group.id
     });
 
     res.json(group);
@@ -24,7 +36,18 @@ exports.createGroup = async (req, res) => {
 exports.getGroups = async (req, res) => {
   try {
     const groups = await Group.findAll({ order: [['createdAt', 'DESC']] });
-    res.json(groups);
+
+    const result = await Promise.all(
+      groups.map(async (group) => {
+        const members = await GroupMember.count({
+          where: { groupId: group.id }
+        });
+
+        return { ...group.toJSON(), members };
+      })
+    );
+
+    res.json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -38,6 +61,7 @@ exports.searchGroups = async (req, res) => {
         [Op.or]: [
           { name: { [Op.like]: `%${q}%` } },
           { course: { [Op.like]: `%${q}%` } },
+          { faculty: { [Op.like]: `%${q}%` } },
           { location: { [Op.like]: `%${q}%` } }
         ]
       },
@@ -64,18 +88,90 @@ exports.joinGroup = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-const GroupMember = require('../models/GroupMember');
 
-exports.getGroups = async (req, res) => {
-  const groups = await Group.findAll();
+exports.updateGroup = async (req, res) => {
+  try {
+    const group = await Group.findByPk(req.params.groupId);
 
-  const result = await Promise.all(groups.map(async group => {
-    const count = await GroupMember.count({
+    if (!group) {
+      return res.status(404).json({ message: 'Group not found' });
+    }
+
+    if (!isGroupLeader(group, req.user.id)) {
+      return res.status(403).json({ message: 'Only the group leader can update this group' });
+    }
+
+    await group.update({
+      name: req.body.name ?? group.name,
+      course: req.body.course ?? group.course,
+      faculty: req.body.faculty ?? group.faculty,
+      description: req.body.description ?? group.description,
+      location: req.body.location ?? group.location
+    });
+
+    res.json(group);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.getGroupMembers = async (req, res) => {
+  try {
+    const group = await Group.findByPk(req.params.groupId);
+
+    if (!group) {
+      return res.status(404).json({ message: 'Group not found' });
+    }
+
+    const memberships = await GroupMember.findAll({
       where: { groupId: group.id }
     });
 
-    return { ...group.toJSON(), members: count };
-  }));
+    const members = await Promise.all(
+      memberships.map(async (membership) => {
+        const user = await User.findByPk(membership.userId, {
+          attributes: ['id', 'name', 'email', 'program', 'year', 'role']
+        });
 
-  res.json(result);
+        return user;
+      })
+    );
+
+    res.json(members.filter(Boolean));
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.removeMember = async (req, res) => {
+  try {
+    const group = await Group.findByPk(req.params.groupId);
+
+    if (!group) {
+      return res.status(404).json({ message: 'Group not found' });
+    }
+
+    if (!isGroupLeader(group, req.user.id)) {
+      return res.status(403).json({ message: 'Only the group leader can remove members' });
+    }
+
+    if (Number(req.params.userId) === group.userId) {
+      return res.status(400).json({ message: 'Leader cannot be removed from the group' });
+    }
+
+    const deleted = await GroupMember.destroy({
+      where: {
+        groupId: group.id,
+        userId: req.params.userId
+      }
+    });
+
+    if (!deleted) {
+      return res.status(404).json({ message: 'Member not found in group' });
+    }
+
+    res.json({ message: 'Member removed successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 };

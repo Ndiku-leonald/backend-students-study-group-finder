@@ -9,7 +9,12 @@ const User = sequelize.define('User', {
   },
   password: DataTypes.STRING,
   program: DataTypes.STRING,
-  year: DataTypes.INTEGER
+  year: DataTypes.INTEGER,
+  role: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    defaultValue: 'student'
+  }
 });
 
 module.exports = User;
