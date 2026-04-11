@@ -14,7 +14,7 @@ exports.addFavorite = async (req, res) => {
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/authMiddleware');
-const { addFavorite } = require('../controllers/favoriteController');
+const { addFavorite } = require('./favoritesController');
 
 router.post('/:groupId', auth, addFavorite);
 
