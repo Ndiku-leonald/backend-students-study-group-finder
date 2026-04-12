@@ -35,7 +35,10 @@ exports.createGroup = async (req, res) => {
 
 exports.getGroups = async (req, res) => {
   try {
-    const groups = await Group.findAll({ order: [['createdAt', 'DESC']] });
+    const groups = await Group.findAll({
+      include: [{ model: User, as: 'Leader', attributes: ['name'] }],
+      order: [['createdAt', 'DESC']]
+    });
 
     const result = await Promise.all(
       groups.map(async (group) => {
@@ -43,7 +46,11 @@ exports.getGroups = async (req, res) => {
           where: { groupId: group.id }
         });
 
-        return { ...group.toJSON(), members };
+        return {
+          ...group.toJSON(),
+          members,
+          leader: group.Leader ? group.Leader.name : 'Unknown'
+        };
       })
     );
 

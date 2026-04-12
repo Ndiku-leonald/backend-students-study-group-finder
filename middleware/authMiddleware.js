@@ -4,7 +4,10 @@ const User = require('../models/user');
 const JWT_SECRET = process.env.JWT_SECRET || 'change-me-in-env';
 
 module.exports = async (req, res, next) => {
-  const token = req.headers.authorization;
+    const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.startsWith('Bearer ')
+    ? authHeader.slice(7)
+    : authHeader;
 
   if (!token) return res.status(401).json({ message: "No token" });
 
