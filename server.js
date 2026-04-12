@@ -27,6 +27,7 @@ app.use(
 );
 
 app.use('/auth', authRoutes);
+app.use('/', authRoutes);
 app.use('/groups', groupRoutes);
 app.use('/sessions', sessionRoutes);
 app.use('/api/favorites', favoriteRoutes);
