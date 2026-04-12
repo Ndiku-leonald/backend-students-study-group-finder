@@ -9,16 +9,16 @@ exports.createGroup = async (req, res) => {
   try {
     const { name, course, faculty, description, location } = req.body;
 
-    if (!name || !course || !description || !location) {
-      return res.status(400).json({ message: 'Name, course, description, and location are required' });
+    if (!name || !course) {
+      return res.status(400).json({ message: 'Name and course are required' });
     }
 
     const group = await Group.create({
       name,
       course,
-      faculty,
-      description,
-      location,
+      faculty: faculty || null,
+      description: description || null,
+      location: location || null,
       userId: req.user.id
     });
 
@@ -60,6 +60,34 @@ exports.getGroups = async (req, res) => {
   }
 };
 
+exports.getRecentGroups = async (req, res) => {
+  try {
+    const groups = await Group.findAll({
+      include: [{ model: User, as: 'Leader', attributes: ['name'] }],
+      order: [['createdAt', 'DESC']],
+      limit: 5
+    });
+
+    const result = await Promise.all(
+      groups.map(async (group) => {
+        const members = await GroupMember.count({
+          where: { groupId: group.id }
+        });
+
+        return {
+          ...group.toJSON(),
+          members,
+          leader: group.Leader ? group.Leader.name : 'Unknown'
+        };
+      })
+    );
+
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 exports.searchGroups = async (req, res) => {
   try {
     const q = req.query.q || '';
@@ -76,6 +104,61 @@ exports.searchGroups = async (req, res) => {
     });
 
     res.json(groups);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.getGroup = async (req, res) => {
+  try {
+    const group = await Group.findByPk(req.params.groupId, {
+      include: [{ model: User, as: 'Leader', attributes: ['name'] }]
+    });
+
+    if (!group) {
+      return res.status(404).json({ message: 'Group not found' });
+    }
+
+    const members = await GroupMember.count({
+      where: { groupId: group.id }
+    });
+
+    res.json({
+      ...group.toJSON(),
+      members,
+      leader: group.Leader ? group.Leader.name : 'Unknown'
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.getGroupSessions = async (req, res) => {
+  try {
+    const group = await Group.findByPk(req.params.groupId);
+
+    if (!group) {
+      return res.status(404).json({ message: 'Group not found' });
+    }
+
+    const isMember = group.userId === req.user.id;
+    const membership = await GroupMember.findOne({
+      where: {
+        groupId: group.id,
+        userId: req.user.id
+      }
+    });
+
+    if (!isMember && !membership) {
+      return res.status(403).json({ message: 'You must be a group member to view sessions' });
+    }
+
+    const sessions = await Session.findAll({
+      where: { groupId: req.params.groupId },
+      order: [['date', 'ASC']]
+    });
+
+    res.json(sessions);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

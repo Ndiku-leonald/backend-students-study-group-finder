@@ -5,6 +5,7 @@ const Favorite = require('./Favorite');
 const Post = require('./Post');
 const GroupMember = require('./GroupMember');
 const Invitation = require('./Invitation');
+const AdminAccessCode = require('./AdminAccessCode');
 
 // Associations
 User.hasMany(Group, { foreignKey: 'userId' });
@@ -42,5 +43,6 @@ module.exports = {
   Favorite,
   Post,
   GroupMember,
-  Invitation
+  Invitation,
+  AdminAccessCode
 };

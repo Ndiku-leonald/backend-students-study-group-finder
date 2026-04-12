@@ -1,13 +1,15 @@
--- Study Group Finder MySQL schema
--- Run this entire script in MySQL Workbench.
+-- Study Group Finder MySQL rebuild script
+-- This script drops and recreates the schema so the database is fully in sync.
 
-CREATE DATABASE IF NOT EXISTS study_group_db
+DROP DATABASE IF EXISTS study_group_db;
+
+CREATE DATABASE study_group_db
   CHARACTER SET utf8mb4
   COLLATE utf8mb4_unicode_ci;
 
 USE study_group_db;
 
-CREATE TABLE IF NOT EXISTS Users (
+CREATE TABLE Users (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
   name VARCHAR(255) NOT NULL,
   email VARCHAR(255) NOT NULL,
@@ -15,13 +17,75 @@ CREATE TABLE IF NOT EXISTS Users (
   program VARCHAR(255),
   year INT,
   role VARCHAR(50) NOT NULL DEFAULT 'student',
+  adminCode VARCHAR(10),
   createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
-  UNIQUE KEY uq_users_email (email)
+  UNIQUE KEY uq_users_email (email),
+  UNIQUE KEY uq_users_adminCode (adminCode)
 ) ENGINE=InnoDB;
 
-CREATE TABLE IF NOT EXISTS Groups (
+CREATE TABLE AdminAccessCodes (
+  code VARCHAR(10) NOT NULL,
+  isActive TINYINT(1) NOT NULL DEFAULT 1,
+  createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (code)
+) ENGINE=InnoDB;
+
+INSERT INTO AdminAccessCodes (code, isActive) VALUES
+('x01', 1),
+('x02', 1),
+('x03', 1),
+('x04', 1),
+('x05', 1),
+('x06', 1),
+('x07', 1),
+('x08', 1),
+('x09', 1),
+('x10', 1),
+('x11', 1),
+('x12', 1),
+('x13', 1),
+('x14', 1),
+('x15', 1),
+('x16', 1),
+('x17', 1),
+('x18', 1),
+('x19', 1),
+('x20', 1),
+('x21', 1),
+('x22', 1),
+('x23', 1),
+('x24', 1),
+('x25', 1),
+('x26', 1),
+('x27', 1),
+('x28', 1),
+('x29', 1),
+('x30', 1),
+('x31', 1),
+('x32', 1),
+('x33', 1),
+('x34', 1),
+('x35', 1),
+('x36', 1),
+('x37', 1),
+('x38', 1),
+('x39', 1),
+('x40', 1),
+('x41', 1),
+('x42', 1),
+('x43', 1),
+('x44', 1),
+('x45', 1),
+('x46', 1),
+('x47', 1),
+('x48', 1),
+('x49', 1),
+('x50', 1);
+
+CREATE TABLE Groups (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
   name VARCHAR(255) NOT NULL,
   course VARCHAR(255),
@@ -39,7 +103,7 @@ CREATE TABLE IF NOT EXISTS Groups (
     ON UPDATE CASCADE
 ) ENGINE=InnoDB;
 
-CREATE TABLE IF NOT EXISTS Sessions (
+CREATE TABLE Sessions (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
   groupId INT UNSIGNED NOT NULL,
   date DATETIME,
@@ -56,7 +120,7 @@ CREATE TABLE IF NOT EXISTS Sessions (
     ON UPDATE CASCADE
 ) ENGINE=InnoDB;
 
-CREATE TABLE IF NOT EXISTS Favorites (
+CREATE TABLE Favorites (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
   userId INT UNSIGNED NOT NULL,
   groupId INT UNSIGNED NOT NULL,
@@ -75,7 +139,7 @@ CREATE TABLE IF NOT EXISTS Favorites (
     ON UPDATE CASCADE
 ) ENGINE=InnoDB;
 
-CREATE TABLE IF NOT EXISTS Posts (
+CREATE TABLE Posts (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
   groupId INT UNSIGNED NOT NULL,
   userId INT UNSIGNED NOT NULL,
@@ -95,7 +159,7 @@ CREATE TABLE IF NOT EXISTS Posts (
     ON UPDATE CASCADE
 ) ENGINE=InnoDB;
 
-CREATE TABLE IF NOT EXISTS GroupMembers (
+CREATE TABLE GroupMembers (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
   groupId INT UNSIGNED NOT NULL,
   userId INT UNSIGNED NOT NULL,
@@ -114,7 +178,7 @@ CREATE TABLE IF NOT EXISTS GroupMembers (
     ON UPDATE CASCADE
 ) ENGINE=InnoDB;
 
-CREATE TABLE IF NOT EXISTS Invitations (
+CREATE TABLE Invitations (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
   groupId INT UNSIGNED NOT NULL,
   inviterId INT UNSIGNED NOT NULL,

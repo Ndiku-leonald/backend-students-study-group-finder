@@ -25,7 +25,8 @@ module.exports = async (req, res, next) => {
       email: user.email,
       role: user.role,
       program: user.program,
-      year: user.year
+      year: user.year,
+      adminCode: user.adminCode
     };
     next();
   } catch (error) {
