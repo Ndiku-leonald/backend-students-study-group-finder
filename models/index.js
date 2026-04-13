@@ -3,6 +3,8 @@ const Group = require('./Group');
 const Session = require('./session');
 const Favorite = require('./Favorite');
 const Post = require('./Post');
+const Comment = require('./Comment');
+const FileShare = require('./FileShare');
 const GroupMember = require('./GroupMember');
 const Invitation = require('./Invitation');
 const AdminAccessCode = require('./AdminAccessCode');
@@ -24,6 +26,16 @@ User.hasMany(Post, { foreignKey: 'userId' });
 Post.belongsTo(Group, { foreignKey: 'groupId' });
 Post.belongsTo(User, { foreignKey: 'userId' });
 
+Post.hasMany(Comment, { foreignKey: 'postId' });
+Comment.belongsTo(Post, { foreignKey: 'postId' });
+User.hasMany(Comment, { foreignKey: 'userId' });
+Comment.belongsTo(User, { foreignKey: 'userId' });
+
+Group.hasMany(FileShare, { foreignKey: 'groupId' });
+FileShare.belongsTo(Group, { foreignKey: 'groupId' });
+User.hasMany(FileShare, { foreignKey: 'userId' });
+FileShare.belongsTo(User, { foreignKey: 'userId' });
+
 Group.hasMany(GroupMember, { foreignKey: 'groupId' });
 User.hasMany(GroupMember, { foreignKey: 'userId' });
 GroupMember.belongsTo(Group, { foreignKey: 'groupId' });
@@ -42,6 +54,8 @@ module.exports = {
   Session,
   Favorite,
   Post,
+  Comment,
+  FileShare,
   GroupMember,
   Invitation,
   AdminAccessCode

@@ -2,7 +2,16 @@ const { Op, Sequelize } = require('sequelize');
 const Group = require('../models/Group');
 const GroupMember = require('../models/GroupMember');
 const Session = require('../models/session');
+const Post = require('../models/Post');
 const User = require('../models/user');
+
+const safeCount = async (model, where = {}) => {
+  try {
+    return await model.count({ where });
+  } catch {
+    return 0;
+  }
+};
 
 exports.getStudentDashboard = async (req, res) => {
   try {
@@ -49,10 +58,11 @@ exports.getStudentDashboard = async (req, res) => {
 
 exports.getAdminDashboard = async (req, res) => {
   try {
-    const [totalUsers, totalGroups, totalSessions] = await Promise.all([
+    const [totalUsers, totalGroups, totalSessions, groups] = await Promise.all([
       User.count(),
       Group.count(),
-      Session.count()
+      Session.count(),
+      Group.findAll()
     ]);
 
     const mostActiveCourses = await Group.findAll({
@@ -65,11 +75,38 @@ exports.getAdminDashboard = async (req, res) => {
       limit: 5
     });
 
+    const groupWorkRaw = await Promise.all(
+      groups.map(async (group) => {
+        const [memberCount, postCount, sessionCount] = await Promise.all([
+          safeCount(GroupMember, { groupId: group.id }),
+          safeCount(Post, { groupId: group.id }),
+          safeCount(Session, { groupId: group.id })
+        ]);
+
+        const activityScore = postCount + sessionCount + memberCount;
+
+        return {
+          id: group.id,
+          name: group.name,
+          course: group.course,
+          memberCount,
+          postCount,
+          sessionCount,
+          activityScore
+        };
+      })
+    );
+
+    const groupWork = groupWorkRaw
+      .sort((a, b) => b.activityScore - a.activityScore)
+      .slice(0, 10);
+
     res.json({
       totalUsers,
       totalGroups,
       totalSessions,
-      mostActiveCourses
+      mostActiveCourses,
+      groupWork
     });
   } catch (error) {
     res.status(500).json({ error: error.message });

@@ -3,8 +3,9 @@ const AdminAccessCode = require('../models/AdminAccessCode');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { randomInt } = require('crypto');
+const env = require('../config/env');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'change-me-in-env';
+const JWT_SECRET = env.JWT_SECRET;
 
 const buildToken = (user) => jwt.sign(
   {
@@ -165,6 +166,10 @@ exports.login = async (req, res) => {
     const { password } = req.body;
     const requestedRole = (req.body.role || '').toLowerCase();
     const accessCode = req.body.accessCode || req.body.adminAccessCode;
+
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Email and password are required' });
+    }
 
     const user = await User.findOne({ where: { email } });
     if (!user) return res.status(400).json({ message: "User not found" });

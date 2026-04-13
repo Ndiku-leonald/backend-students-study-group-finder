@@ -1,7 +1,17 @@
 const { Op } = require('sequelize');
 const Group = require('../models/Group');
 const GroupMember = require('../models/GroupMember');
+const Session = require('../models/session');
+const Post = require('../models/Post');
 const User = require('../models/user');
+
+const getGroupMessageCount = async (groupId) => {
+  try {
+    return await Post.count({ where: { groupId } });
+  } catch {
+    return 0;
+  }
+};
 
 const isGroupLeader = (group, userId) => group.userId === userId;
 
@@ -46,9 +56,12 @@ exports.getGroups = async (req, res) => {
           where: { groupId: group.id }
         });
 
+        const messageCount = await getGroupMessageCount(group.id);
+
         return {
           ...group.toJSON(),
           members,
+          messageCount,
           leader: group.Leader ? group.Leader.name : 'Unknown'
         };
       })
@@ -74,9 +87,12 @@ exports.getRecentGroups = async (req, res) => {
           where: { groupId: group.id }
         });
 
+        const messageCount = await getGroupMessageCount(group.id);
+
         return {
           ...group.toJSON(),
           members,
+          messageCount,
           leader: group.Leader ? group.Leader.name : 'Unknown'
         };
       })
@@ -90,16 +106,43 @@ exports.getRecentGroups = async (req, res) => {
 
 exports.searchGroups = async (req, res) => {
   try {
-    const q = req.query.q || '';
-    const groups = await Group.findAll({
-      where: {
+    const q = (req.query.q || '').trim();
+    const title = (req.query.title || '').trim();
+    const course = (req.query.course || '').trim();
+    const faculty = (req.query.faculty || '').trim();
+    const location = (req.query.location || '').trim();
+
+    const andFilters = [];
+
+    if (q) {
+      andFilters.push({
         [Op.or]: [
           { name: { [Op.like]: `%${q}%` } },
           { course: { [Op.like]: `%${q}%` } },
           { faculty: { [Op.like]: `%${q}%` } },
           { location: { [Op.like]: `%${q}%` } }
         ]
-      },
+      });
+    }
+
+    if (title) {
+      andFilters.push({ name: { [Op.like]: `%${title}%` } });
+    }
+
+    if (course) {
+      andFilters.push({ course: { [Op.like]: `%${course}%` } });
+    }
+
+    if (faculty) {
+      andFilters.push({ faculty: { [Op.like]: `%${faculty}%` } });
+    }
+
+    if (location) {
+      andFilters.push({ location: { [Op.like]: `%${location}%` } });
+    }
+
+    const groups = await Group.findAll({
+      where: andFilters.length ? { [Op.and]: andFilters } : undefined,
       order: [['createdAt', 'DESC']]
     });
 
@@ -168,12 +211,58 @@ exports.joinGroup = async (req, res) => {
   try {
     const { groupId } = req.params;
 
+    const group = await Group.findByPk(groupId);
+    if (!group) {
+      return res.status(404).json({ message: 'Group not found' });
+    }
+
+    const existing = await GroupMember.findOne({
+      where: {
+        groupId,
+        userId: req.user.id
+      }
+    });
+
+    if (existing) {
+      return res.status(400).json({ message: 'You are already a member of this group' });
+    }
+
     const membership = await GroupMember.create({
       groupId,
       userId: req.user.id
     });
 
     res.json(membership);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.leaveGroup = async (req, res) => {
+  try {
+    const { groupId } = req.params;
+
+    const group = await Group.findByPk(groupId);
+    if (!group) {
+      return res.status(404).json({ message: 'Group not found' });
+    }
+
+    if (group.userId === req.user.id) {
+      return res.status(400).json({ message: 'Group leaders cannot leave their own group' });
+    }
+
+    const deleted = await GroupMember.destroy({
+      where: {
+        groupId,
+        userId: req.user.id
+      }
+    });
+
+    if (!deleted) {
+      return res.status(404).json({ message: 'You are not a member of this group' });
+    }
+
+    res.json({ message: 'You left the group successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

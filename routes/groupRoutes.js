@@ -9,6 +9,7 @@ const {
 	getGroup,
 	getGroupSessions,
 	joinGroup,
+	leaveGroup,
 	updateGroup,
 	getGroupMembers,
 	removeMember
@@ -24,6 +25,7 @@ router.get('/:groupId/members', auth, getGroupMembers);
 router.get('/:groupId/sessions', auth, getGroupSessions);
 router.get('/:groupId/posts', auth, getGroupPosts);
 router.post('/join/:groupId', auth, joinGroup);
+router.post('/leave/:groupId', auth, leaveGroup);
 router.post('/create', auth, createGroup);
 router.put('/:groupId', auth, updateGroup);
 router.delete('/:groupId/members/:userId', auth, removeMember);

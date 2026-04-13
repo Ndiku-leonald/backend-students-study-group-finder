@@ -8,7 +8,8 @@ const isGroupLeader = (group, userId) => group.userId === userId;
 exports.inviteMember = async (req, res) => {
   try {
     const { groupId } = req.params;
-    const { inviteeEmail, inviteeId } = req.body;
+    const inviteeEmail = (req.body.inviteeEmail || req.body.email || '').trim().toLowerCase();
+    const { inviteeId } = req.body;
 
     const group = await Group.findByPk(groupId);
 

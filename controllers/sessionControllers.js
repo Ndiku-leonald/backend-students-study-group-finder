@@ -5,7 +5,12 @@ const isGroupLeader = (group, userId) => group.userId === userId;
 
 exports.createSession = async (req, res) => {
   try {
-    const { groupId, date, time, location, description } = req.body;
+    const { groupId, date, time, location } = req.body;
+    const description = req.body.description ?? req.body.agenda;
+
+    if (!groupId || !date || !time || !location) {
+      return res.status(400).json({ message: 'groupId, date, time, and location are required' });
+    }
 
     const group = await Group.findByPk(groupId);
 

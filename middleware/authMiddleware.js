@@ -1,7 +1,8 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/user');
+const env = require('../config/env');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'change-me-in-env';
+const JWT_SECRET = env.JWT_SECRET;
 
 module.exports = async (req, res, next) => {
     const authHeader = req.headers.authorization;
