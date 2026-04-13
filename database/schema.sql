@@ -1,8 +1,9 @@
 -- Study Group Finder MySQL rebuild script
--- This script drops and recreates the schema so the database is fully in sync.
+-- This file drops and recreates the schema so the database stays in sync with the models.
 
 DROP DATABASE IF EXISTS study_group_db;
 
+-- Recreate the database using a UTF-8 friendly collation for student names and course titles.
 CREATE DATABASE study_group_db
   CHARACTER SET utf8mb4
   COLLATE utf8mb4_unicode_ci;
@@ -10,6 +11,7 @@ CREATE DATABASE study_group_db
 USE study_group_db;
 
 CREATE TABLE Users (
+  -- Main authentication table for students and admins.
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
   name VARCHAR(255) NOT NULL,
   email VARCHAR(255) NOT NULL,
@@ -26,6 +28,7 @@ CREATE TABLE Users (
 ) ENGINE=InnoDB;
 
 CREATE TABLE AdminAccessCodes (
+  -- Preloaded codes that let an administrator create an account.
   code VARCHAR(10) NOT NULL,
   isActive TINYINT(1) NOT NULL DEFAULT 1,
   createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -86,6 +89,7 @@ INSERT INTO AdminAccessCodes (code, isActive) VALUES
 ('x50', 1);
 
 CREATE TABLE Groups (
+  -- Study groups are owned by one user and can have many members.
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
   name VARCHAR(255) NOT NULL,
   course VARCHAR(255),
@@ -104,6 +108,7 @@ CREATE TABLE Groups (
 ) ENGINE=InnoDB;
 
 CREATE TABLE Sessions (
+  -- Sessions belong to a study group and represent scheduled study times.
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
   groupId INT UNSIGNED NOT NULL,
   date DATETIME,
@@ -121,6 +126,7 @@ CREATE TABLE Sessions (
 ) ENGINE=InnoDB;
 
 CREATE TABLE Favorites (
+  -- Favorites let users bookmark groups without joining them.
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
   userId INT UNSIGNED NOT NULL,
   groupId INT UNSIGNED NOT NULL,
@@ -140,6 +146,7 @@ CREATE TABLE Favorites (
 ) ENGINE=InnoDB;
 
 CREATE TABLE Posts (
+  -- Posts are the shared discussion feed inside each group.
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
   groupId INT UNSIGNED NOT NULL,
   userId INT UNSIGNED NOT NULL,
@@ -160,6 +167,7 @@ CREATE TABLE Posts (
 ) ENGINE=InnoDB;
 
 CREATE TABLE GroupMembers (
+  -- Membership rows connect users to the groups they joined.
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
   groupId INT UNSIGNED NOT NULL,
   userId INT UNSIGNED NOT NULL,
@@ -179,6 +187,7 @@ CREATE TABLE GroupMembers (
 ) ENGINE=InnoDB;
 
 CREATE TABLE Invitations (
+  -- Invitations track the lifecycle of a member invite.
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
   groupId INT UNSIGNED NOT NULL,
   inviterId INT UNSIGNED NOT NULL,

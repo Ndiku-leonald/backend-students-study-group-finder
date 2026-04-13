@@ -8,6 +8,7 @@ const Session = require('../models/session');
 
 router.post('/create', auth, createSession);
 
+// This route mirrors the controller logic so group session pages can load directly.
 router.get('/group/:groupId', auth, async (req, res) => {
 	try {
 		const group = await Group.findByPk(req.params.groupId);

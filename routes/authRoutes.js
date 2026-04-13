@@ -3,6 +3,7 @@ const router = express.Router();
 const { register, login, getUsers } = require('../controllers/authControllers');
 const auth = require('../middleware/authMiddleware');
 
+// Keep role-specific endpoints thin by reusing the same controller functions.
 const registerAs = (role) => (req, res) => {
 	req.body.role = role;
 	return register(req, res);

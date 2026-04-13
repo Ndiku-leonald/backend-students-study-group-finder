@@ -1,9 +1,12 @@
 const Post = require('../models/Post');
 const Group = require('../models/Group');
 const GroupMember = require('../models/GroupMember');
+const User = require('../models/user');
 
 exports.createPost = async (req, res) => {
   try {
+    // Posts are stored as simple group messages.
+    // The author is taken from the authenticated user, not from request input.
     const post = await Post.create({
       content: req.body.content,
       groupId: req.params.groupId,
@@ -18,6 +21,8 @@ exports.createPost = async (req, res) => {
 
 exports.getGroupPosts = async (req, res) => {
   try {
+    // Gate post visibility behind membership checks.
+    // This keeps group discussions private to the people who actually joined.
     const group = await Group.findByPk(req.params.groupId);
 
     if (!group) {

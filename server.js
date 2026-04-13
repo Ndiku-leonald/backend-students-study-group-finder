@@ -3,7 +3,9 @@ const cors = require('cors');
 require('dotenv').config();
 const routes = require('./routes');
 const sequelize = require('./config/db');
-require('./models'); // Load models and associations
+// Importing the models index registers every model and relationship before the
+// app starts serving requests. That ensures Sequelize knows the full schema.
+require('./models');
 const app = express();
 const PORT = process.env.PORT || 5000;
 const authRoutes = require('./routes/authRoutes');
@@ -15,12 +17,15 @@ const dashboardRoutes = require('./routes/dashboardRoutes');
 const invitationRoutes = require('./routes/invitationRoutes');
 const userRoutes = require('./routes/userRoutes');
 
+// Restrict CORS to the configured frontend origins when they are provided.
+// This allows the React app to call the API while keeping browser access controlled.
 const allowedOrigins = (process.env.FRONTEND_ORIGIN || '')
   .split(',')
   .map((origin) => origin.trim())
   .filter(Boolean);
 
 app.use(express.json());
+// JSON parsing must run before the API routes so controllers can read request bodies.
 app.use(
   cors({
     origin: allowedOrigins.length ? allowedOrigins : true,
@@ -28,6 +33,8 @@ app.use(
   })
 );
 
+// Route mounting keeps each domain isolated: auth, groups, sessions, posts,
+// favorites, dashboard data, invitations, and user operations all live in their own module.
 app.use('/api/auth', authRoutes);
 app.use('/api/groups', groupRoutes);
 app.use('/api/sessions', sessionRoutes);
@@ -43,24 +50,23 @@ app.get('/', (req, res) => {
   res.send("API is running");
 });
 
+// Keep the root router mounted for test and fallback routes.
 app.use('/', routes);
 
+// Bring the database online before starting the HTTP server.
+// The sequence is: authenticate the DB connection, sync models into tables,
+// seed admin access codes, then start listening on the port.
 sequelize
   .authenticate()
   .then(() => {
     console.log('MySQL connected');
   })
   .then(async () => {
-    await sequelize.query(`
-      CREATE TABLE IF NOT EXISTS AdminAccessCodes (
-        code VARCHAR(10) NOT NULL,
-        isActive TINYINT(1) NOT NULL DEFAULT 1,
-        createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        PRIMARY KEY (code)
-      ) ENGINE=InnoDB;
-    `);
+    // Create any missing tables from the current model definitions.
+    await sequelize.sync();
 
+    // Seed a predictable pool of admin codes for registration.
+    // These codes are used by the admin registration flow to prevent open signup.
     const seedCodes = Array.from({ length: 50 }, (_, index) => {
       const codeNumber = String(index + 1).padStart(2, '0');
       return `('${`x${codeNumber}`}', 1)`;

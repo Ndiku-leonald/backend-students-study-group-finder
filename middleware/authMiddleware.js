@@ -4,7 +4,9 @@ const User = require('../models/user');
 const JWT_SECRET = process.env.JWT_SECRET || 'change-me-in-env';
 
 module.exports = async (req, res, next) => {
-    const authHeader = req.headers.authorization;
+  // Support both raw tokens and Bearer tokens from the frontend.
+  // Some callers send just the token, while axios sends "Bearer <token>".
+  const authHeader = req.headers.authorization;
   const token = authHeader && authHeader.startsWith('Bearer ')
     ? authHeader.slice(7)
     : authHeader;
@@ -19,6 +21,8 @@ module.exports = async (req, res, next) => {
       return res.status(401).json({ message: 'User not found' });
     }
 
+    // Attach a sanitized user object to the request for downstream controllers.
+    // Controllers rely on req.user for authorization checks and ownership checks.
     req.user = {
       id: user.id,
       name: user.name,

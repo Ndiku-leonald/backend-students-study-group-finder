@@ -8,6 +8,7 @@ const PORT = process.env.PORT || 5000;
 app.use(express.json());
 app.use(cors());
 
+// Lightweight route used to verify registration requests independently.
 app.post('/api/auth/register', (req, res) => {
   console.log('Registration request:', req.body);
   res.json({ message: 'Test registration endpoint working', data: req.body });

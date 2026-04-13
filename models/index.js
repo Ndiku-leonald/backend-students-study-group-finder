@@ -7,28 +7,35 @@ const GroupMember = require('./GroupMember');
 const Invitation = require('./Invitation');
 const AdminAccessCode = require('./AdminAccessCode');
 
-// Associations
+// Associations define how the dashboard and detail views stitch records together.
+// The goal is to mirror the real application flows: a user leads groups, joins
+// groups, posts messages, schedules sessions, saves favorites, and receives invites.
 User.hasMany(Group, { foreignKey: 'userId' });
 Group.belongsTo(User, { foreignKey: 'userId', as: 'Leader' });
 
+// A group can have many scheduled study sessions.
 Group.hasMany(Session, { foreignKey: 'groupId' });
 Session.belongsTo(Group, { foreignKey: 'groupId' });
 
+// Favorites are a many-to-many style link captured as a dedicated table.
 User.hasMany(Favorite, { foreignKey: 'userId' });
 Group.hasMany(Favorite, { foreignKey: 'groupId' });
 Favorite.belongsTo(User, { foreignKey: 'userId' });
 Favorite.belongsTo(Group, { foreignKey: 'groupId' });
 
+// Posts represent the lightweight discussion feed for each group.
 Group.hasMany(Post, { foreignKey: 'groupId' });
 User.hasMany(Post, { foreignKey: 'userId' });
 Post.belongsTo(Group, { foreignKey: 'groupId' });
 Post.belongsTo(User, { foreignKey: 'userId' });
 
+// Group members are stored in a join table instead of a nested array.
 Group.hasMany(GroupMember, { foreignKey: 'groupId' });
 User.hasMany(GroupMember, { foreignKey: 'userId' });
 GroupMember.belongsTo(Group, { foreignKey: 'groupId' });
 GroupMember.belongsTo(User, { foreignKey: 'userId' });
 
+// Invitations need both the inviter and invitee so we model both relationships.
 Group.hasMany(Invitation, { foreignKey: 'groupId' });
 Invitation.belongsTo(Group, { foreignKey: 'groupId' });
 User.hasMany(Invitation, { as: 'SentInvitations', foreignKey: 'inviterId' });

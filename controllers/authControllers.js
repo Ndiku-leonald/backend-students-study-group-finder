@@ -6,6 +6,9 @@ const { randomInt } = require('crypto');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'change-me-in-env';
 
+// Build the signed session token the frontend stores after login or registration.
+// The token carries the minimum useful identity data so the frontend can route
+// users without making an extra lookup on every page load.
 const buildToken = (user) => jwt.sign(
   {
     id: user.id,
@@ -18,6 +21,9 @@ const buildToken = (user) => jwt.sign(
   { expiresIn: '1d' }
 );
 
+// Strip sensitive fields before sending user data back to the client.
+// Passwords never leave the server, and the frontend only receives profile data
+// it needs for routing and display.
 const buildSafeUser = (user) => ({
   id: user.id,
   name: user.name,
@@ -28,6 +34,9 @@ const buildSafeUser = (user) => ({
   adminCode: user.adminCode || null
 });
 
+// Generate a unique admin code that is not already assigned to another user.
+// Admin accounts need a separate identifier so they can be distinguished even
+// if email addresses or names change later.
 const generateAdminCode = async () => {
   const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
@@ -46,6 +55,8 @@ const generateAdminCode = async () => {
 const normalizeAccessCode = (value) => (value || '').trim().toLowerCase();
 const normalizeEmail = (value) => (value || '').trim().toLowerCase();
 
+// Confirm the admin access code exists and is currently active.
+// This prevents free-form admin signups and keeps the admin role controlled.
 const verifyAdminAccessCode = async (accessCode) => {
   const normalizedCode = normalizeAccessCode(accessCode);
 
@@ -65,6 +76,8 @@ const verifyAdminAccessCode = async (accessCode) => {
 
 exports.register = async (req, res) => {
   try {
+    // Accept a few alternate field names so the frontend can evolve safely.
+    // The console logs are useful while demoing or debugging registration payloads.
     console.log('Registration request body:', req.body);
 
     const name = req.body.name || req.body.fullName || req.body.username;
@@ -96,6 +109,7 @@ exports.register = async (req, res) => {
     }
 
     if (role === 'student') {
+      // Student accounts require academic profile information.
       if (!program) missingFields.push('program');
       if (yearValue === undefined || yearValue === null || yearValue === '') missingFields.push('year');
     }
@@ -128,8 +142,11 @@ exports.register = async (req, res) => {
     }
 
     console.log('Hashing password...');
+    // bcrypt hashes the password before it reaches the database.
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Admin users get a generated code; student users keep those fields empty.
+    // This keeps the stored profile aligned with the account type.
     console.log('Creating user...');
     const adminCode = role === 'admin' ? await generateAdminCode() : null;
     const normalizedProgram = role === 'admin' ? null : program;
@@ -161,6 +178,8 @@ exports.register = async (req, res) => {
 
 exports.login = async (req, res) => {
   try {
+    // Login accepts the same role split as registration, but validates against the stored user.
+    // That means the client can send either a student or admin login request using the same handler.
     const email = normalizeEmail(req.body.email);
     const { password } = req.body;
     const requestedRole = (req.body.role || '').toLowerCase();
@@ -185,6 +204,8 @@ exports.login = async (req, res) => {
     if (!isMatch) return res.status(400).json({ message: "Invalid password" });
 
     if (user.role === 'admin' && !user.adminCode) {
+      // Backfill a code if an admin account predates the current schema.
+      // This keeps older admin records compatible with the current auth flow.
       user.adminCode = await generateAdminCode();
       await user.save();
     }
@@ -203,6 +224,8 @@ exports.login = async (req, res) => {
 };
 
 exports.getUsers = async (req, res) => {
+  // Only admins can browse the user list.
+  // The dashboard uses this for platform oversight and account management.
   if (req.user.role !== 'admin') {
     return res.status(403).json({ message: 'Access denied' });
   }

@@ -3,10 +3,13 @@ const Group = require('../models/Group');
 const GroupMember = require('../models/GroupMember');
 const User = require('../models/user');
 
+// The group creator controls invitation permissions.
 const isGroupLeader = (group, userId) => group.userId === userId;
 
 exports.inviteMember = async (req, res) => {
   try {
+    // Accept either an email or a direct user ID for the invite target.
+    // This makes the feature flexible for both search-based and manual workflows.
     const { groupId } = req.params;
     const { inviteeEmail, inviteeId } = req.body;
 
@@ -42,6 +45,8 @@ exports.inviteMember = async (req, res) => {
       inviteeId: targetUser.id
     });
 
+    // The invite is saved as pending until the recipient responds.
+    // That status is what drives the invites page in the frontend.
     res.json(invitation);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -50,6 +55,8 @@ exports.inviteMember = async (req, res) => {
 
 exports.getMyInvitations = exports.getPendingInvites = async (req, res) => {
   try {
+    // Join against group and inviter so the UI can show names instead of raw IDs.
+    // The aliasing mirrors the relationships defined in models/index.js.
     const invitations = await Invitation.findAll({
       where: { inviteeId: req.user.id, status: 'pending' },
       include: [
@@ -74,6 +81,8 @@ exports.getMyInvitations = exports.getPendingInvites = async (req, res) => {
 
 exports.acceptInvitation = async (req, res) => {
   try {
+    // Accepting an invite flips the status and creates the membership link.
+    // That membership is what unlocks posts and sessions for the group.
     const invitation = await Invitation.findByPk(req.params.invitationId);
 
     if (!invitation || invitation.inviteeId !== req.user.id) {
@@ -98,6 +107,8 @@ exports.acceptInvitation = async (req, res) => {
 
 exports.rejectInvitation = async (req, res) => {
   try {
+    // Rejecting keeps the record for audit/history purposes.
+    // It also prevents the same invite from being treated as pending again.
     const invitation = await Invitation.findByPk(req.params.invitationId);
 
     if (!invitation || invitation.inviteeId !== req.user.id) {
@@ -115,6 +126,8 @@ exports.rejectInvitation = async (req, res) => {
 
 exports.respondToInvite = async (req, res) => {
   try {
+    // A single endpoint can accept or decline based on the response field.
+    // This is convenient when the frontend wants one handler for both actions.
     const { response } = req.body;
     const invitation = await Invitation.findByPk(req.params.invitationId);
 

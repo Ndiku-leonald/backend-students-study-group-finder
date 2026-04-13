@@ -9,6 +9,7 @@ const {
   respondToInvite
 } = require('../controllers/invitationController');
 
+// Invitations are scoped to the current authenticated user.
 router.get('/', auth, getMyInvitations);
 router.get('/pending', auth, getPendingInvites);
 router.post('/:invitationId/accept', auth, acceptInvitation);

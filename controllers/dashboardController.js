@@ -6,6 +6,8 @@ const User = require('../models/user');
 
 exports.getStudentDashboard = async (req, res) => {
   try {
+    // Resolve the groups the student belongs to so we can reuse the IDs below.
+    // The dashboard is built from multiple small queries rather than one giant join.
     const memberships = await GroupMember.findAll({
       where: { userId: req.user.id }
     });
@@ -41,6 +43,8 @@ exports.getStudentDashboard = async (req, res) => {
       limit: 5
     });
 
+    // Return the full dashboard payload in one response to keep the UI simple.
+    // The frontend can render cards and lists immediately from this payload.
     res.json({ myGroups, upcomingSessions, recentGroups });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -49,6 +53,8 @@ exports.getStudentDashboard = async (req, res) => {
 
 exports.getAdminDashboard = async (req, res) => {
   try {
+    // Platform-wide counters are fetched in parallel for a faster dashboard load.
+    // This gives admins a quick overview without navigating through each table manually.
     const [totalUsers, totalGroups, totalSessions] = await Promise.all([
       User.count(),
       Group.count(),

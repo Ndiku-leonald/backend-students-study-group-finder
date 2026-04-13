@@ -5,6 +5,8 @@ const Session = require('../models/session');
 
 exports.getUserGroups = async (req, res) => {
   try {
+    // Resolve the groups a user belongs to plus any groups they created.
+    // The profile view can use this to show the student's full group footprint.
     const memberships = await GroupMember.findAll({
       where: { userId: req.user.id }
     });
@@ -33,6 +35,8 @@ exports.getUserGroups = async (req, res) => {
 
 exports.getUserUpcomingSessions = async (req, res) => {
   try {
+    // Upcoming sessions are filtered to the groups the user can actually access.
+    // That keeps the schedule screen focused on relevant study sessions only.
     const memberships = await GroupMember.findAll({
       where: { userId: req.user.id }
     });
