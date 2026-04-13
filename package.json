@@ -6,7 +6,12 @@
   "scripts": {
     "dev": "nodemon server.js",
     "start": "node server.js",
-    "test": "cross-env NODE_ENV=test jest --runInBand"
+    "test": "cross-env NODE_ENV=test jest --runInBand",
+    "pm2:start": "pm2 start ecosystem.config.cjs",
+    "pm2:restart": "pm2 restart study-group-backend",
+    "pm2:stop": "pm2 stop study-group-backend",
+    "pm2:delete": "pm2 delete study-group-backend",
+    "pm2:logs": "pm2 logs study-group-backend"
   },
   "repository": {
     "type": "git",
