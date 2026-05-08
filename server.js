@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 require('dotenv').config();
 const routes = require('./routes');
 const sequelize = require('./config/db');
@@ -32,6 +33,8 @@ app.use(
     credentials: true
   })
 );
+
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Route mounting keeps each domain isolated: auth, groups, sessions, posts,
 // favorites, dashboard data, invitations, and user operations all live in their own module.

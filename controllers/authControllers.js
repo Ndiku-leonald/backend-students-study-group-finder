@@ -5,6 +5,11 @@ const jwt = require('jsonwebtoken');
 const { randomInt } = require('crypto');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'change-me-in-env';
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+const UPPERCASE_REGEX = /[A-Z]/;
+const LOWERCASE_REGEX = /[a-z]/;
+const NUMBER_REGEX = /\d/;
+const SYMBOL_REGEX = /[!@#$%&*()\-_=+\[\]{};:'",.<>/?\\|`~]/;
 
 // Build the signed session token the frontend stores after login or registration.
 // The token carries the minimum useful identity data so the frontend can route
@@ -55,6 +60,85 @@ const generateAdminCode = async () => {
 const normalizeAccessCode = (value) => (value || '').trim().toLowerCase();
 const normalizeEmail = (value) => (value || '').trim().toLowerCase();
 
+const isValidEmail = (value) => EMAIL_REGEX.test(value || '');
+
+const hasSequentialPattern = (value) => {
+  const text = (value || '').toLowerCase();
+
+  for (let index = 0; index <= text.length - 4; index += 1) {
+    let ascending = true;
+    let descending = true;
+
+    for (let offset = 0; offset < 3; offset += 1) {
+      const current = text.charCodeAt(index + offset);
+      const next = text.charCodeAt(index + offset + 1);
+
+      if (Number.isNaN(current) || Number.isNaN(next) || next !== current + 1) {
+        ascending = false;
+      }
+
+      if (Number.isNaN(current) || Number.isNaN(next) || next !== current - 1) {
+        descending = false;
+      }
+    }
+
+    if (ascending || descending) {
+      return true;
+    }
+  }
+
+  return false;
+};
+
+const containsPersonalInfo = (password, name, email) => {
+  const normalizedPassword = (password || '').toLowerCase();
+  const normalizedEmail = normalizeEmail(email);
+  const emailLocalPart = normalizedEmail.split('@')[0] || '';
+  const nameParts = (name || '')
+    .toLowerCase()
+    .split(/\s+/)
+    .map((part) => part.replace(/[^a-z0-9]/g, ''))
+    .filter((part) => part.length >= 3);
+
+  if (emailLocalPart && normalizedPassword.includes(emailLocalPart)) {
+    return true;
+  }
+
+  return nameParts.some((part) => normalizedPassword.includes(part));
+};
+
+const validatePassword = (password, name, email) => {
+  if (typeof password !== 'string' || password.length < 8) {
+    return 'Password must be at least 8 characters long';
+  }
+
+  if (!UPPERCASE_REGEX.test(password)) {
+    return 'Password must include at least one uppercase letter';
+  }
+
+  if (!LOWERCASE_REGEX.test(password)) {
+    return 'Password must include at least one lowercase letter';
+  }
+
+  if (!NUMBER_REGEX.test(password)) {
+    return 'Password must include at least one number';
+  }
+
+  if (!SYMBOL_REGEX.test(password)) {
+    return 'Password must include at least one symbol';
+  }
+
+  if (hasSequentialPattern(password)) {
+    return 'Password cannot contain sequential patterns like 1234 or abcd';
+  }
+
+  if (containsPersonalInfo(password, name, email)) {
+    return 'Password cannot contain your name or email';
+  }
+
+  return null;
+};
+
 // Confirm the admin access code exists and is currently active.
 // This prevents free-form admin signups and keeps the admin role controlled.
 const verifyAdminAccessCode = async (accessCode) => {
@@ -95,6 +179,12 @@ exports.register = async (req, res) => {
     if (!name) missingFields.push('name');
     if (!email) missingFields.push('email');
     if (!password) missingFields.push('password');
+
+    if (email && !isValidEmail(email)) {
+      return res.status(400).json({
+        message: 'Email must be a valid address like name@example.com'
+      });
+    }
 
     if (!['student', 'admin'].includes(role)) {
       return res.status(400).json({ message: 'Role must be either student or admin' });
@@ -142,6 +232,11 @@ exports.register = async (req, res) => {
     }
 
     console.log('Hashing password...');
+    const passwordError = validatePassword(password, name, email);
+    if (passwordError) {
+      return res.status(400).json({ message: passwordError });
+    }
+
     // bcrypt hashes the password before it reaches the database.
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -185,8 +280,25 @@ exports.login = async (req, res) => {
     const requestedRole = (req.body.role || '').toLowerCase();
     const accessCode = req.body.accessCode || req.body.adminAccessCode;
 
+    if (!email || !isValidEmail(email)) {
+      return res.status(400).json({ message: 'Please enter a valid email address' });
+    }
+
+    if (!password) {
+      return res.status(400).json({ message: 'Password is required' });
+    }
+
     const user = await User.findOne({ where: { email } });
-    if (!user) return res.status(400).json({ message: "User not found" });
+    if (!user) {
+      const hasAnyUsers = await User.count();
+      if (!hasAnyUsers) {
+        return res.status(404).json({
+          message: 'No accounts exist in the database yet. Please register again.'
+        });
+      }
+
+      return res.status(404).json({ message: 'User not found. Check the email or register first.' });
+    }
 
     if (requestedRole && requestedRole !== user.role) {
       return res.status(403).json({ message: `This account is registered as ${user.role}` });

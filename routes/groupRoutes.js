@@ -11,7 +11,8 @@ const {
 	joinGroup,
 	updateGroup,
 	getGroupMembers,
-	removeMember
+	removeMember,
+	deleteGroup
 } = require('../controllers/groupController');
 const { getGroupPosts } = require('../controllers/postController');
 const { inviteMember } = require('../controllers/invitationController');
@@ -27,6 +28,7 @@ router.get('/:groupId/posts', auth, getGroupPosts);
 router.post('/join/:groupId', auth, joinGroup);
 router.post('/create', auth, createGroup);
 router.put('/:groupId', auth, updateGroup);
+router.delete('/:groupId', auth, deleteGroup);
 router.delete('/:groupId/members/:userId', auth, removeMember);
 // Older frontend screens still call both invite paths, so both stay supported.
 router.post('/:groupId/invitations', auth, inviteMember);

@@ -287,3 +287,35 @@ exports.removeMember = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+exports.deleteGroup = async (req, res) => {
+  try {
+    // Only the group leader or an admin can delete the entire group.
+    // This prevents accidental or malicious deletion by regular members.
+    const group = await Group.findByPk(req.params.groupId);
+
+    if (!group) {
+      return res.status(404).json({ message: 'Group not found' });
+    }
+
+    const isAdmin = req.user.role === 'admin';
+    const isLeader = isGroupLeader(group, req.user.id);
+
+    if (!isLeader && !isAdmin) {
+      return res.status(403).json({
+        message: 'Only the group leader or an admin can delete this group'
+      });
+    }
+
+    // Delete all related data in the correct order to respect foreign keys.
+    // Sessions, posts, invitations, and members are cascade-deleted by the database,
+    // but we explicitly clean them first to be safe.
+    await GroupMember.destroy({ where: { groupId: group.id } });
+    await Session.destroy({ where: { groupId: group.id } });
+    await Group.destroy({ where: { id: group.id } });
+
+    res.json({ message: 'Group deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};

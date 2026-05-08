@@ -2,6 +2,7 @@ const { Op } = require('sequelize');
 const Group = require('../models/Group');
 const GroupMember = require('../models/GroupMember');
 const Session = require('../models/session');
+const User = require('../models/user');
 
 exports.getUserGroups = async (req, res) => {
   try {
@@ -24,6 +25,7 @@ exports.getUserGroups = async (req, res) => {
           { userId: req.user.id }
         ]
       },
+      include: [{ model: User, as: 'Leader', attributes: ['name'] }],
       order: [['createdAt', 'DESC']]
     });
 
